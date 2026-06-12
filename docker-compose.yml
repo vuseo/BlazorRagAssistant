@@ -1,0 +1,12 @@
+﻿services:
+  rag-assistant:
+    container_name: blazor_rag_assistant
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # This points to the variable name in your hidden .env file:
+      - GoogleAI__ApiKey=${GOOGLE_API_KEY}
