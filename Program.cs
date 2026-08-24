@@ -26,6 +26,9 @@ builder.Services.AddSingleton(new Client(apiKey: apiKey));
 // Register your Custom RAG Service
 builder.Services.AddScoped<RagService>();
 
+//Document Service
+builder.Services.AddScoped<IDocumentService, DocumentService>();
+
 // ==========================================
 
 var app = builder.Build();

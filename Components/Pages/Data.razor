@@ -1,0 +1,141 @@
+﻿@page "/data"
+@using BlazorRagAssistant.Services
+@using Microsoft.AspNetCore.Components.Forms
+@inject IDocumentService DocumentService
+@rendermode InteractiveServer
+
+<PageTitle>Context Data Manager</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📄 RAG Knowledge Base Manager</h2>
+        <span class="badge bg-secondary">File: club-rules.txt</span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="alert alert-@statusClass alert-dismissible fade show" role="alert">
+            @statusMessage
+            <button type="button" class="btn-close" @onclick="() => statusMessage = null"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Sidebar Upload & Controls -->
+        <div class="col-md-4 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">Upload New Context Document</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Upload a new <code>.txt</code> file to overwrite the active retrieval knowledge base used by the Gemini model.
+                    </p>
+                    <div class="mb-3">
+                        <InputFile OnChange="HandleFileUpload" class="form-control" accept=".txt" />
+                    </div>
+                    @if (isUploading)
+                    {
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="ms-2">Processing file...</span>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Content Editor / Preview -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Active Knowledge Base Content</h5>
+                    <button class="btn btn-sm btn-success" @onclick="SaveChanges" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Save Changes
+                    </button>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control font-monospace"
+                              rows="18"
+                              @bind="documentContent"
+                              placeholder="Loading knowledge base context...">
+                    </textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? documentContent;
+    private string? statusMessage;
+    private string statusClass = "success";
+    private bool isUploading = false;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocument();
+    }
+
+    private async Task LoadDocument()
+    {
+        documentContent = await DocumentService.GetDocumentContentAsync();
+    }
+
+    private async Task SaveChanges()
+    {
+        isSaving = true;
+        try
+        {
+            await DocumentService.SaveDocumentContentAsync(documentContent ?? string.Empty);
+            ShowAlert("Knowledge base updated successfully! RAG queries will now use the new context.", "success");
+        }
+        catch (Exception ex)
+        {
+            ShowAlert($"Error saving context: {ex.Message}", "danger");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        isUploading = true;
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                // Max size limit: 2MB for plain text
+                using var stream = file.OpenReadStream(maxAllowedSize: 2 * 1024 * 1024);
+                using var reader = new StreamReader(stream);
+                documentContent = await reader.ReadToEndAsync();
+
+                // Auto-save uploaded content
+                await DocumentService.SaveDocumentContentAsync(documentContent);
+                ShowAlert($"File '{file.Name}' uploaded and active knowledge base updated!", "success");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowAlert($"Failed to process upload: {ex.Message}", "danger");
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void ShowAlert(string message, string cssClass)
+    {
+        statusMessage = message;
+        statusClass = cssClass;
+    }
+}

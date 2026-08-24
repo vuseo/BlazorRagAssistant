@@ -5,54 +5,44 @@ namespace BlazorRagAssistant.Services;
 public class RagService
 {
     private readonly Client _aiClient;
-    private readonly List<string> _knowledgeChunks = new();
-    private bool _isInitialized = false;
+    private readonly IDocumentService _documentService;
 
-    // 🚀 THE CRITICAL FIX: Upgrade from the retired 1.5 flash string to the 2.5 production engine
+    // 🚀 Production Engine Target
     private const string ModelName = "gemini-2.5-flash";
 
-    public RagService(Client aiClient)
+    // Inject IDocumentService alongside the Google GenAI Client
+    public RagService(Client aiClient, IDocumentService documentService)
     {
         _aiClient = aiClient;
+        _documentService = documentService;
     }
 
     public async Task InitializeKnowledgeBaseAsync()
     {
-        if (_isInitialized) return;
-
-        try
-        {
-            var filePath = Path.Combine(AppContext.BaseDirectory, "Data", "club-rules.txt");
-            if (!File.Exists(filePath)) return;
-
-            string fullText = await File.ReadAllTextAsync(filePath);
-            var sections = fullText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
-
-            _knowledgeChunks.Clear();
-            _knowledgeChunks.AddRange(sections);
-
-            _isInitialized = true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[RAG INIT ERROR]: {ex.Message}");
-        }
+        // Handled dynamically on every query call to guarantee fresh context!
+        await Task.CompletedTask;
     }
 
     public async Task<(string Answer, string ContextUsed)> AskQuestionAsync(string userQuestion)
     {
         try
         {
-            if (!_isInitialized)
+            // 1. Fetch live text from IDocumentService (picks up any edits/uploads from the Data page)
+            string fullText = await _documentService.GetDocumentContentAsync();
+
+            if (string.IsNullOrWhiteSpace(fullText))
             {
-                await InitializeKnowledgeBaseAsync();
+                return ("No knowledge base content found. Please upload or add content in the Data tab.", "Empty context file.");
             }
+
+            // 2. Chunk the fresh document text
+            var knowledgeChunks = fullText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
 
             string context = "No relevant context found.";
 
-            // 1. Try a broad search by splitting words
+            // 3. Keyword proximity scoring
             var keywords = userQuestion.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var bestMatch = _knowledgeChunks
+            var bestMatch = knowledgeChunks
                 .Select(chunk => new {
                     Chunk = chunk,
                     Score = keywords.Count(kw => chunk.Contains(kw, StringComparison.OrdinalIgnoreCase))
@@ -65,11 +55,10 @@ public class RagService
             {
                 context = bestMatch.Chunk;
             }
-            else if (_knowledgeChunks.Any())
+            else if (knowledgeChunks.Any())
             {
-                // 🚀 THE FOOLPROOF FALLBACK: If keyword extraction fails, feed the entire document!
-                // Gemini 2.5 Flash has a massive context window and handles the full file effortlessly.
-                context = string.Join("\n\n", _knowledgeChunks);
+                // 🚀 FOOLPROOF FALLBACK: Pass full context if keyword matching fails
+                context = string.Join("\n\n", knowledgeChunks);
             }
 
             string prompt = $"""
@@ -83,13 +72,12 @@ public class RagService
             {userQuestion}
             """;
 
-            // Execute using the official production client endpoints
+            // 4. Send request to Gemini API
             var response = await _aiClient.Models.GenerateContentAsync(
                 model: ModelName,
                 contents: prompt
             );
 
-            // Access the string property natively provided by the official SDK response model wrapper
             string generatedText = response.Text ?? "No response text found.";
 
             return (generatedText, context);
