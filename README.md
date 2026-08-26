@@ -4,6 +4,10 @@ An enterprise-ready, high-performance Blazor Server application demonstrating a 
 
 This project showcases clean architectural separation, production-grade API mapping, and strict credential security workflows required for enterprise AI software development.
 
+![Palloliitto API Integration](https://img.shields.io/badge/Palloliitto-TASO_REST_API-003366?logo=football)
+
+* **Live Sports Telemetry & Tactical Prediction Engine:** Connects directly to the Finnish Football Association (**Suomen Palloliitto TASO REST API**) to pull live league standings and match schedules. Combines live match data with **Gemini 2.5 Flash** to perform automated pre-match tactical scouting and win-probability simulations.
+
 ## 🛠️ Tech Stack & Architecture
 - **Framework:** .NET Core / Blazor Server (Interactive Server Mode)
 - **AI Core:** Google Gemini 2.5 Flash Engine (`Google.GenAI` SDK)

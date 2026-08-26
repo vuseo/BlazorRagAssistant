@@ -1,0 +1,208 @@
+﻿@page "/stats"
+@using BlazorRagAssistant.Models
+@using BlazorRagAssistant.Services
+@inject PalloliittoApiService PalloliittoService
+@inject MatchPredictionService PredictionService
+@rendermode InteractiveServer
+
+<PageTitle>Match Analytics & Predictions</PageTitle>
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>⚽ Puistofutis 6v6 Tampere - Match Analytics</h2>
+        <span class="badge bg-success">🟢 Connected to Palloliitto TASO API</span>
+    </div>
+
+    <!-- Upcoming Fixture Header Card -->
+    @if (upcomingMatch != null)
+    {
+        <div class="card mb-4 bg-primary text-white shadow-sm">
+            <div class="card-body d-flex justify-content-between align-middle align-items-center">
+                <div>
+                    <h6 class="text-uppercase text-light mb-1">📅 Next Fixture</h6>
+                    <h4 class="mb-0">@upcomingMatch.HomeTeamName 🆚 @upcomingMatch.AwayTeamName</h4>
+                    <small>@upcomingMatch.Date at @upcomingMatch.Time — 📍 @upcomingMatch.VenueName</small>
+                </div>
+                <button class="btn btn-light btn-sm font-weight-bold" @onclick="AutoPredictNextMatch">
+                    ⚡ Analyze Upcoming Opponent
+                </button>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Standings Table -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">🏆 Current Standings</h5>
+                    <button class="btn btn-sm btn-outline-light" @onclick="LoadLiveData">🔄 Refresh Live</button>
+                </div>
+                <div class="card-body p-0">
+                    @if (isLoadingData)
+                    {
+                        <div class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="text-muted mt-2">Fetching live data from Palloliitto API...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Team</th>
+                                        <th>P</th>
+                                        <th>W-D-L</th>
+                                        <th>Goals</th>
+                                        <th>Diff</th>
+                                        <th>Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var team in standings)
+                                    {
+                                        <tr class="@(team.TeamName == "Vuoreksen Peikot" ? "table-primary fw-bold" : "")">
+                                            <td>@team.Position</td>
+                                            <td>@team.TeamName</td>
+                                            <td>@team.Played</td>
+                                            <td>@team.Wins-@team.Draws-@team.Losses</td>
+                                            <td>@team.GoalsFor–@team.GoalsAgainst</td>
+                                            <td>@(team.GoalDifference > 0 ? "+" + team.GoalDifference : team.GoalDifference)</td>
+                                            <td><span class="badge bg-primary fs-6">@team.Points</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Match Predictor Card -->
+        <div class="col-lg-5 mb-4">
+            <div class="card shadow-sm border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">🔮 AI Opponent Match Predictor</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Select Target Team:</label>
+                        <select class="form-select" @bind="selectedTeamName">
+                            @foreach (var t in standings)
+                            {
+                                <option value="@t.TeamName">@t.TeamName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Select Upcoming Opponent:</label>
+                        <select class="form-select" @bind="selectedOpponentName">
+                            @foreach (var t in standings.Where(s => s.TeamName != selectedTeamName))
+                            {
+                                <option value="@t.TeamName">@t.TeamName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <button class="btn btn-success w-100 mb-3" @onclick="RunPrediction" disabled="@isAnalyzing">
+                        @if (isAnalyzing)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                            <span>Simulating Tactics...</span>
+                        }
+                        else
+                        {
+                            <span>⚡ Generate AI Prediction & Tactics</span>
+                        }
+                    </button>
+
+                    @if (prediction != null)
+                    {
+                        <div class="border rounded p-3 bg-light">
+                            <h6 class="text-center text-uppercase fw-bold text-muted">Win Probability</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: @(prediction.TargetWinProbability)%" title="@prediction.TargetTeam">
+                                    @prediction.TargetWinProbability%
+                                </div>
+                                <div class="progress-bar bg-secondary" role="progressbar" style="width: @(prediction.DrawProbability)%" title="Draw">
+                                    @prediction.DrawProbability%
+                                </div>
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: @(prediction.OpponentWinProbability)%" title="@prediction.OpponentTeam">
+                                    @prediction.OpponentWinProbability%
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between small text-muted mb-3">
+                                <span>💙 @prediction.TargetTeam</span>
+                                <span>🤝 Draw (@prediction.DrawProbability%)</span>
+                                <span>❤️ @prediction.OpponentTeam</span>
+                            </div>
+
+                            <h6 class="fw-bold">🤖 Gemini Tactical Insights:</h6>
+                            <div class="small text-secondary" style="white-space: pre-line;">
+                                @prediction.TacticalAnalysis
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<TeamStats> standings = new();
+    private TasoMatch? upcomingMatch;
+    private string selectedTeamName = "Vuoreksen Peikot";
+    private string selectedOpponentName = "Salomon Kalou AC";
+    private bool isLoadingData = true;
+    private bool isAnalyzing = false;
+    private MatchPredictionResult? prediction;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLiveData();
+    }
+
+    private async Task LoadLiveData()
+    {
+        isLoadingData = true;
+        // UPDATED METHOD CALL HERE:
+        standings = await PalloliittoService.GetLiveGroupStandingsAsync();
+        var matches = await PalloliittoService.GetUpcomingMatchesAsync();
+        upcomingMatch = matches.FirstOrDefault();
+
+        if (upcomingMatch != null)
+        {
+            selectedTeamName = upcomingMatch.HomeTeamName;
+            selectedOpponentName = upcomingMatch.AwayTeamName;
+        }
+
+        isLoadingData = false;
+    }
+
+    private async Task AutoPredictNextMatch()
+    {
+        if (upcomingMatch != null)
+        {
+            selectedTeamName = upcomingMatch.HomeTeamName;
+            selectedOpponentName = upcomingMatch.AwayTeamName;
+            await RunPrediction();
+        }
+    }
+
+    private async Task RunPrediction()
+    {
+        isAnalyzing = true;
+        var team = standings.FirstOrDefault(t => t.TeamName == selectedTeamName) ?? standings.First();
+        var opponent = standings.FirstOrDefault(t => t.TeamName == selectedOpponentName) ?? standings.Last();
+
+        prediction = await PredictionService.PredictMatchAsync(team, opponent);
+        isAnalyzing = false;
+    }
+}

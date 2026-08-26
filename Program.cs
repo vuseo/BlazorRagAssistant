@@ -29,6 +29,16 @@ builder.Services.AddScoped<RagService>();
 //Document Service
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 
+//Match Prediction
+builder.Services.AddScoped<MatchPredictionService>();
+
+//Palloliitto API Service
+builder.Services.AddHttpClient<PalloliittoApiService>();
+
+// Register HttpClient & PalloliittoApiService
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<PalloliittoApiService>();
+
 // ==========================================
 
 var app = builder.Build();
