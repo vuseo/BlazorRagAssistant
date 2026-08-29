@@ -1,6 +1,8 @@
 # Blazor RAG Assistant (Proof of Concept)
+-Salim
 
 An enterprise-ready, high-performance Blazor Server application demonstrating a robust Retrieval-Augmented Generation (RAG) pipeline utilizing the official production **Google.GenAI** SDK. 
+
 
 This project showcases clean architectural separation, production-grade API mapping, and strict credential security workflows required for enterprise AI software development.
 
