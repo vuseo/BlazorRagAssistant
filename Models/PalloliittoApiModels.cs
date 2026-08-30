@@ -89,3 +89,20 @@ public class TasoMatch
     [JsonPropertyName("venue_name")]
     public string VenueName { get; set; } = string.Empty;
 }
+public class TulospalveluMatchDto
+{
+    [JsonPropertyName("team_A_name")]
+    public string? HomeTeamName { get; set; }
+
+    [JsonPropertyName("team_B_name")]
+    public string? AwayTeamName { get; set; }
+
+    [JsonPropertyName("date")]
+    public string? MatchDate { get; set; }
+
+    [JsonPropertyName("time")]
+    public string? MatchTime { get; set; }
+
+    [JsonPropertyName("venue_name")]
+    public string? VenueName { get; set; }
+}

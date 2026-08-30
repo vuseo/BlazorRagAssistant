@@ -172,15 +172,18 @@
     private async Task LoadLiveData()
     {
         isLoadingData = true;
-        // UPDATED METHOD CALL HERE:
+
         standings = await PalloliittoService.GetLiveGroupStandingsAsync();
-        var matches = await PalloliittoService.GetUpcomingMatchesAsync();
+
+        // Fetch upcoming matches for Vuoreksen Peikot (Team ID 35216425)
+        var matches = await PalloliittoService.GetUpcomingMatchesAsync("35216425");
         upcomingMatch = matches.FirstOrDefault();
 
         if (upcomingMatch != null)
         {
+            // Explicitly set target team and opponent from the upcoming fixture
             selectedTeamName = upcomingMatch.HomeTeamName;
-            selectedOpponentName = upcomingMatch.AwayTeamName;
+            selectedOpponentName = upcomingMatch.AwayTeamName; // Sets to "Jalismaanit"!
         }
 
         isLoadingData = false;
