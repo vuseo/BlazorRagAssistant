@@ -14,6 +14,7 @@
     </div>
 
     <!-- Upcoming Fixture Header Card -->
+
     @if (upcomingMatch != null)
     {
         <div class="card mb-4 bg-primary text-white shadow-sm">
@@ -32,6 +33,7 @@
 
     <div class="row">
         <!-- Standings Table -->
+
         <div class="col-lg-7 mb-4">
             <div class="card shadow-sm">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
@@ -83,6 +85,7 @@
         </div>
 
         <!-- AI Match Predictor Card -->
+
         <div class="col-lg-5 mb-4">
             <div class="card shadow-sm border-primary">
                 <div class="card-header bg-primary text-white">
@@ -156,6 +159,7 @@
 </div>
 
 @code {
+
     private List<TeamStats> standings = new();
     private TasoMatch? upcomingMatch;
     private string selectedTeamName = "Vuoreksen Peikot";

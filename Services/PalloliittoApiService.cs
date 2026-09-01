@@ -117,18 +117,18 @@ public class PalloliittoApiService
         };
     }
 
-    private List<TasoMatch> GetFallbackMatches()
-    {
-        return new()
-        {
-            new TasoMatch
-            {
-                HomeTeamName = "Vuoreksen Peikot",
-                AwayTeamName = "Salomon Kalou AC",
-                Date = DateTime.Now.AddDays(3).ToString("dd.MM.yyyy"),
-                Time = "18:30",
-                VenueName = "Kauppi 1 Tekonurmi"
-            }
-        };
-    }
+    //private List<TasoMatch> GetFallbackMatches()
+    //{
+    //    return new()
+    //    {
+    //        new TasoMatch
+    //        {
+    //            HomeTeamName = "Vuoreksen Peikot",
+    //            AwayTeamName = "Salomon Kalou AC",
+    //            Date = DateTime.Now.AddDays(3).ToString("dd.MM.yyyy"),
+    //            Time = "18:30",
+    //            VenueName = "Kauppi 1 Tekonurmi"
+    //        }
+    //    };
+    //}
 }
