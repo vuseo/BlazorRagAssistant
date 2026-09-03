@@ -117,6 +117,33 @@ public class PalloliittoApiService
         };
     }
 
+    public async Task<MatchWeather> GetMatchdayWeatherAsync(string dateIso = "2026-09-09")
+    {
+        try
+        {
+            // Latitude 61.51, Longitude 23.81 corresponds to Kauppi Tekonurmi in Tampere
+            var requestUrl = $"https://api.open-meteo.com/v1/forecast?latitude=61.51&longitude=23.81&hourly=temperature_2m,precipitation&start_date={dateIso}&end_date={dateIso}";
+            var response = await _httpClient.GetFromJsonAsync<WeatherResponse>(requestUrl);
+
+            if (response?.Hourly?.Temperature != null && response.Hourly.Temperature.Any())
+            {
+                // Pick 20:00 (Index 20) for evening match kick-off
+                return new MatchWeather
+                {
+                    Temperature = response.Hourly.Temperature.ElementAtOrDefault(20),
+                    Precipitation = response.Hourly.Precipitation?.ElementAtOrDefault(20) ?? 0.0
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"[WEATHER API] Could not fetch Open-Meteo data: {ex.Message}");
+        }
+
+        // Default Fallback Weather for Kauppi
+        return new MatchWeather { Temperature = 14.5, Precipitation = 0.0 };
+    }
+
     //private List<TasoMatch> GetFallbackMatches()
     //{
     //    return new()

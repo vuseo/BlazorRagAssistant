@@ -1,0 +1,58 @@
+﻿@page "/calendar"
+@inject Services.PalloliittoApiService PalloliittoService
+
+<PageTitle>Matchday Calendar & Weather</PageTitle>
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center mb-4">
+        <h2 class="mb-0">📅 Matchday Calendar & Pitch Weather</h2>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var match in matches)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-header bg-primary text-white d-flex justify-between align-items-center">
+                            <span class="fw-bold">⚽ @match.HomeTeamName vs @match.AwayTeamName</span>
+                            <span class="badge bg-light text-dark">@match.Date @@ @match.Time</span>
+                        </div>
+                        <div class="card-body">
+                            <h6 class="text-muted mb-3">📍 Venue: @match.VenueName</h6>
+
+                            <div class="p-3 bg-light rounded border">
+                                <h6 class="fw-bold text-dark mb-2">🌡️ Kick-off Weather Forecast (Kauppi)</h6>
+                                <ul class="list-unstyled mb-0">
+                                    <li><strong>Temperature:</strong> @weather.Temperature°C</li>
+                                    <li><strong>Precipitation:</strong> @weather.Precipitation mm</li>
+                                    <li class="mt-2"><span class="badge bg-info text-dark">@weather.PitchCondition</span></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Models.TasoMatch> matches = new();
+    private Models.MatchWeather weather = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        matches = await PalloliittoService.GetUpcomingMatchesAsync();
+        weather = await PalloliittoService.GetMatchdayWeatherAsync("2026-09-09");
+        isLoading = false;
+    }
+}
